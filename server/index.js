@@ -48,13 +48,50 @@ if (process.env.NODE_ENV === 'production') {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    vercel: process.env.VERCEL || false,
+    database: process.env.VERCEL ? 'in-memory' : 'file-based'
+  });
 });
 
 // Test endpoint for debugging
 app.post('/api/test', (req, res) => {
   console.log('Test endpoint hit:', req.body);
   res.json({ message: 'Test successful', received: req.body });
+});
+
+// Simple test endpoint for extraction
+app.post('/api/test-extraction', (req, res) => {
+  try {
+    const { category, location } = req.body;
+    console.log('Test extraction request:', { category, location });
+    
+    // Simulate a quick extraction
+    setTimeout(() => {
+      res.json({ 
+        jobId: 'test-' + Date.now(),
+        status: 'completed',
+        message: 'Test extraction completed',
+        data: [
+          {
+            businessName: `Test ${category} Business`,
+            address: `123 Test St, ${location}`,
+            phone: '(555) 123-4567',
+            email: 'test@example.com',
+            website: 'https://example.com',
+            rating: 4.5,
+            category: category
+          }
+        ]
+      });
+    }, 1000);
+  } catch (error) {
+    console.error('Test extraction error:', error);
+    res.status(500).json({ error: 'Test extraction failed' });
+  }
 });
 
 // Error handling middleware

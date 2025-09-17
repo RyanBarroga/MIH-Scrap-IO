@@ -33,8 +33,15 @@ router.post('/start', async (req, res) => {
           return res.status(500).json({ error: 'Failed to create extraction job' });
         }
 
-        // Start scraping in background
-        scraper.scrapeData(jobId, category, location, filters)
+        // Start scraping in background with timeout
+        const scrapingPromise = scraper.scrapeData(jobId, category, location, filters);
+        
+        // Set a timeout for the scraping operation
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Scraping timeout')), 45000); // 45 seconds
+        });
+
+        Promise.race([scrapingPromise, timeoutPromise])
           .catch(error => {
             console.error('Scraping error:', error);
             // Update job status to failed
@@ -53,7 +60,7 @@ router.post('/start', async (req, res) => {
     );
   } catch (error) {
     console.error('Error starting extraction:', error);
-    res.status(500).json({ error: 'Failed to start extraction' });
+    res.status(500).json({ error: 'Failed to start extraction: ' + error.message });
   }
 });
 
