@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScrapIO - Data Extraction Tool</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Roboto', Arial, sans-serif;
+        background-color: #f5f5f5;
+      }
+      .header {
+        background: linear-gradient(135deg, #1976d2, #42a5f5);
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .btn {
+        background: #1976d2;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+      .btn:hover {
+        background: #1565c0;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      .form-group input, .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #1976d2;
+      }
+      .sidebar {
+        position: fixed;
+        left: -250px;
+        top: 0;
+        width: 250px;
+        height: 100vh;
+        background: #1976d2;
+        transition: left 0.3s ease;
+        z-index: 1000;
+        padding-top: 80px;
+      }
+      .sidebar.open {
+        left: 0;
+      }
+      .sidebar-toggle {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: #1976d2;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        z-index: 1001;
+        font-size: 18px;
+      }
+      .sidebar-toggle:hover {
+        background: #1565c0;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 20px;
+      }
+      .nav button {
+        background: transparent;
+        border: 2px solid white;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.3s ease;
+      }
+      .nav button.active {
+        background: white;
+        color: #1976d2;
+      }
+      .nav button:hover {
+        background: rgba(255,255,255,0.1);
+      }
+      .main-content {
+        margin-left: 0;
+        transition: margin-left 0.3s ease;
+      }
+      .main-content.sidebar-open {
+        margin-left: 250px;
+      }
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: none;
+      }
+      .overlay.show {
+        display: block;
+      }
+      
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 100%;
+          left: -100%;
+        }
+        .main-content.sidebar-open {
+          margin-left: 0;
+        }
+        .container {
+          padding: 10px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .stat-card {
+          padding: 15px;
+        }
+        .stat-number {
+          font-size: 1.5em;
+        }
+        .sidebar-toggle {
+          top: 15px;
+          left: 15px;
+          padding: 8px;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .stats {
+          grid-template-columns: 1fr;
+        }
+        .header h1 {
+          font-size: 2em !important;
+        }
+        .header p {
+          font-size: 1em !important;
+        }
+      }
+      .error {
+        background: #ffebee;
+        color: #c62828;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .success {
+        background: #e8f5e8;
+        color: #2e7d32;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <!-- Overlay for mobile -->
+    <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="nav">
+        <button class="nav-btn active" onclick="showPage('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" onclick="showPage('extract')">🔍 Extract Data</button>
+        <button class="nav-btn" onclick="showPage('data')">📋 View Data</button>
+      </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+      <div class="header">
+        <div class="container">
+          <h1 style="margin: 0; font-size: 2.5em;">ScrapIO</h1>
+          <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">Professional Google Maps Data Extraction Tool</p>
+        </div>
+      </div>
+      
+      <div class="container">
+
+      <!-- Dashboard -->
+      <div id="dashboard-page" class="page">
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-number" id="total-extractions">0</div>
+            <div>Total Extractions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="completed-jobs">0</div>
+            <div>Completed Jobs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="pending-jobs">0</div>
+            <div>Pending Jobs</div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h3>Quick Actions</h3>
+            <button class="btn" onclick="showPage('extract')">Start New Extraction</button>
+            <button class="btn" onclick="showPage('data')">View Data</button>
+          </div>
+          <div class="card">
+            <h3>System Status</h3>
+            <p>Backend: <span id="backend-status">Checking...</span></p>
+            <p>Database: <span id="db-status">Checking...</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extract Data -->
+      <div id="extract-page" class="page" style="display: none;">
+        <div class="card">
+          <h2>Extract Data from Google Maps</h2>
+          <div class="grid">
+            <div class="form-group">
+              <label>Category</label>
+                <select id="category-select">
+                  <option value="">Select a category</option>
+                  <option value="Schools">Schools</option>
+                  <option value="University">University</option>
+                  <option value="Restaurants">Restaurants</option>
+                  <option value="Hotels">Hotels</option>
+                  <option value="Hospitals">Hospitals</option>
+                  <option value="Banks">Banks</option>
+                  <option value="Pharmacies">Pharmacies</option>
+                  <option value="Gas Stations">Gas Stations</option>
+                  <option value="Gyms">Gyms</option>
+                  <option value="Grocery Stores">Grocery Stores</option>
+                  <option value="Shopping Centers">Shopping Centers</option>
+                </select>
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" id="location-input" placeholder="e.g., New York, NY or 10001">
+            </div>
+          </div>
+          
+          <button class="btn" id="start-extraction" onclick="startExtraction()">Start Extraction</button>
+          <div id="extraction-status"></div>
+        </div>
+      </div>
+
+      <!-- View Data -->
+      <div id="data-page" class="page" style="display: none;">
+        <div class="card">
+          <h2>Extracted Data</h2>
+          <div style="margin-bottom: 15px;">
+            <button class="btn" onclick="loadData()">Refresh Data</button>
+            <button class="btn" onclick="copyAllEmails()" style="background: #2e7d32; margin-left: 10px;">📧 Copy All Emails</button>
+            <button class="btn" onclick="exportData()" style="background: #ed6c02; margin-left: 10px;">📊 Export CSV</button>
+          </div>
+          <div id="data-container">
+            <div>Loading data...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <script src="https://unpkg.com/axios@1.6.0/dist/axios.min.js"></script>
+    <script>
+      const API_BASE = 'http://localhost:5000/api';
+      let currentPage = 'dashboard';
+
+      // Sidebar functions
+      function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const overlay = document.getElementById('overlay');
+        
+        sidebar.classList.toggle('open');
+        mainContent.classList.toggle('sidebar-open');
+        overlay.classList.toggle('show');
+      }
+
+      function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const overlay = document.getElementById('overlay');
+        
+        sidebar.classList.remove('open');
+        mainContent.classList.remove('sidebar-open');
+        overlay.classList.remove('show');
+      }
+
+      function showPage(page) {
+        // Close sidebar when navigating on mobile
+        if (window.innerWidth <= 768) {
+          closeSidebar();
+        }
+        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(page + '-page').style.display = 'block';
+        document.querySelector(`[onclick="showPage('${page}')"]`).classList.add('active');
+        
+        currentPage = page;
+        
+        if (page === 'dashboard') {
+          loadStats();
+        } else if (page === 'data') {
+          loadData();
+        }
+      }
+
+      async function loadStats() {
+        try {
+          const response = await axios.get(`${API_BASE}/data/stats`);
+          const stats = response.data;
+          
+          document.getElementById('total-extractions').textContent = stats.total_extractions || 0;
+          document.getElementById('completed-jobs').textContent = stats.completed_jobs || 0;
+          document.getElementById('pending-jobs').textContent = stats.pending_jobs || 0;
+          
+          document.getElementById('backend-status').textContent = 'Connected';
+          document.getElementById('db-status').textContent = 'Connected';
+        } catch (error) {
+          console.error('Error loading stats:', error);
+          document.getElementById('backend-status').textContent = 'Disconnected';
+          document.getElementById('db-status').textContent = 'Error';
+        }
+      }
+
+      async function startExtraction() {
+        const category = document.getElementById('category-select').value;
+        const location = document.getElementById('location-input').value;
+
+        if (!category || !location) {
+          showError('Please select a category and enter a location');
+          return;
+        }
+
+        const btn = document.getElementById('start-extraction');
+        btn.disabled = true;
+        btn.textContent = 'Starting...';
+
+        try {
+          console.log('Sending request to:', `${API_BASE}/scraping/start`);
+          console.log('Request data:', { category, location, filters: {} });
+          
+          const response = await axios.post(`${API_BASE}/scraping/start`, {
+            category,
+            location,
+            filters: {}
+          }, {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
+          });
+
+          console.log('Response received:', response.data);
+          showSuccess('Extraction started successfully! Job ID: ' + response.data.jobId);
+          btn.disabled = false;
+          btn.textContent = 'Start Extraction';
+          
+          // Start polling for job status
+          pollJobStatus(response.data.jobId);
+        } catch (error) {
+          console.error('Full error:', error);
+          console.error('Error response:', error.response);
+          console.error('Error message:', error.message);
+          
+          let errorMessage = 'Failed to start extraction: ';
+          if (error.response && error.response.data && error.response.data.error) {
+            errorMessage += error.response.data.error;
+          } else if (error.message) {
+            errorMessage += error.message;
+          } else {
+            errorMessage += 'Unknown error occurred';
+          }
+          
+          showError(errorMessage);
+          btn.disabled = false;
+          btn.textContent = 'Start Extraction';
+        }
+      }
+
+      async function loadData() {
+        const container = document.getElementById('data-container');
+        container.innerHTML = 'Loading data...';
+
+        try {
+          const response = await axios.get(`${API_BASE}/data/all?limit=50`);
+          const data = response.data.data || [];
+          
+          if (data.length === 0) {
+            container.innerHTML = 'No data available. Start an extraction to see results.';
+            return;
+          }
+
+          let html = '<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">';
+          html += '<tr style="background: #f5f5f5;"><th style="padding: 10px; border: 1px solid #ddd;">Business Name</th><th style="padding: 10px; border: 1px solid #ddd;">Address</th><th style="padding: 10px; border: 1px solid #ddd;">Phone</th><th style="padding: 10px; border: 1px solid #ddd;">Email</th><th style="padding: 10px; border: 1px solid #ddd;">Website</th><th style="padding: 10px; border: 1px solid #ddd;">Rating</th><th style="padding: 10px; border: 1px solid #ddd;">Actions</th></tr>';
+
+          data.forEach(business => {
+            const addressLink = business.address ? 
+              `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}" target="_blank" style="color: #1976d2; text-decoration: none;">${business.address}</a>` : 
+              '-';
+            
+            const mapButton = business.address ? 
+              `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}" target="_blank" style="background: #1976d2; color: white; padding: 4px 8px; text-decoration: none; border-radius: 4px; font-size: 12px;">🗺️ View Map</a>` :
+              '-';
+            
+            const emailLink = business.email ? 
+              `<a href="mailto:${business.email}" style="color: #1976d2; text-decoration: none;">${business.email}</a>` :
+              '-';
+            
+            const websiteLink = business.website ? 
+              `<a href="${business.website}" target="_blank" style="color: #1976d2; text-decoration: none;">Visit Website</a>` :
+              '-';
+            
+            const copyEmailButton = business.email ? 
+              `<button onclick="copySingleEmail('${business.email}')" style="background: #2e7d32; color: white; border: none; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; margin-left: 5px;">📋</button>` :
+              '';
+            
+            html += `<tr>
+              <td style="padding: 10px; border: 1px solid #ddd;">${business.businessName || '-'}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${addressLink}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${business.phone || '-'}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${emailLink}${copyEmailButton}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${websiteLink}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${business.rating ? business.rating.toFixed(1) + '★' : '-'}</td>
+              <td style="padding: 10px; border: 1px solid #ddd;">${mapButton}</td>
+            </tr>`;
+          });
+
+          html += '</table>';
+          container.innerHTML = html;
+        } catch (error) {
+          console.error('Error loading data:', error);
+          container.innerHTML = '<div class="error">Failed to load data</div>';
+        }
+      }
+
+      // Copy all emails to clipboard
+      async function copyAllEmails() {
+        console.log('Copy all emails button clicked');
+        try {
+          console.log('Fetching data from API...');
+          // Fetch data from API
+          const response = await axios.get(`${API_BASE}/data/all?limit=1000`);
+          console.log('API response:', response.data);
+          const data = response.data.data || [];
+
+          if (data.length === 0) {
+            showError('No data available. Please load data first.');
+            return;
+          }
+
+          console.log('Data received:', data.length, 'records');
+
+          // Filter out businesses with emails and extract just the email addresses
+          const emails = data
+            .filter(business => business.email && business.email.trim() !== '')
+            .map(business => business.email.trim());
+
+          console.log('Emails found:', emails.length);
+
+          if (emails.length === 0) {
+            showError('No email addresses found in the data.');
+            return;
+          }
+
+          // Join emails with commas and newlines for easy pasting
+          const emailList = emails.join(',\n');
+          console.log('Email list to copy:', emailList);
+
+          try {
+            // Use the modern Clipboard API
+            await navigator.clipboard.writeText(emailList);
+            showSuccess(`✅ Copied ${emails.length} email addresses to clipboard!`);
+          } catch (err) {
+            console.log('Clipboard API failed, using fallback:', err);
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = emailList;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showSuccess(`✅ Copied ${emails.length} email addresses to clipboard!`);
+          }
+        } catch (error) {
+          console.error('Error fetching data for email copy:', error);
+          showError('Failed to load data for copying emails: ' + error.message);
+        }
+      }
+
+      // Copy single email to clipboard
+      async function copySingleEmail(email) {
+        try {
+          await navigator.clipboard.writeText(email);
+          showSuccess(`✅ Copied: ${email}`);
+        } catch (err) {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = email;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          showSuccess(`✅ Copied: ${email}`);
+        }
+      }
+
+      // Export data
+      async function exportData() {
+        console.log('Export CSV button clicked');
+        try {
+          console.log('Fetching data from API...');
+          // Fetch data from API
+          const response = await axios.get(`${API_BASE}/data/all?limit=1000`);
+          console.log('API response:', response.data);
+          const data = response.data.data || [];
+
+          if (data.length === 0) {
+            showError('No data available. Please load data first.');
+            return;
+          }
+
+          console.log('Data received for export:', data.length, 'records');
+          const csvContent = convertToCSV(data);
+          console.log('CSV content generated, length:', csvContent.length);
+          downloadCSV(csvContent, 'scrapio_export.csv');
+          showSuccess(`✅ Exported ${data.length} records to CSV!`);
+        } catch (error) {
+          console.error('Error fetching data for export:', error);
+          showError('Failed to load data for export: ' + error.message);
+        }
+      }
+
+      // Convert data to CSV
+      function convertToCSV(data) {
+        const headers = ['Business Name', 'Address', 'Phone', 'Email', 'Website', 'Rating', 'Review Count', 'Category'];
+        const csvRows = [
+          headers.join(','),
+          ...data.map(row => [
+            `"${row.businessName || ''}"`,
+            `"${row.address || ''}"`,
+            `"${row.phone || ''}"`,
+            `"${row.email || ''}"`,
+            `"${row.website || ''}"`,
+            row.rating || '',
+            row.reviewCount || '',
+            `"${row.category || ''}"`
+          ].join(','))
+        ];
+        return csvRows.join('\n');
+      }
+
+      // Download CSV
+      function downloadCSV(content, filename) {
+        const blob = new Blob([content], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function showError(message) {
+        const status = document.getElementById('extraction-status');
+        status.innerHTML = `<div class="error">${message}</div>`;
+        setTimeout(() => status.innerHTML = '', 5000);
+      }
+
+      function showSuccess(message) {
+        const status = document.getElementById('extraction-status');
+        status.innerHTML = `<div class="success">${message}</div>`;
+        setTimeout(() => status.innerHTML = '', 5000);
+      }
+
+      async function pollJobStatus(jobId) {
+        const statusDiv = document.getElementById('extraction-status');
+        let attempts = 0;
+        const maxAttempts = 30; // 30 attempts = 1 minute
+        
+        const poll = async () => {
+          try {
+            const response = await axios.get(`${API_BASE}/scraping/status/${jobId}`);
+            const job = response.data;
+            
+            statusDiv.innerHTML = `
+              <div class="success">
+                Job Status: ${job.status}<br>
+                Processed: ${job.processedResults} / ${job.totalResults} businesses
+              </div>
+            `;
+            
+            if (job.status === 'completed') {
+              statusDiv.innerHTML = `
+                <div class="success">
+                  ✅ Extraction completed! Found ${job.totalResults} businesses.<br>
+                  <a href="#" onclick="showPage('data')">View Results</a>
+                </div>
+              `;
+              // Refresh stats
+              loadStats();
+              return;
+            } else if (job.status === 'failed') {
+              statusDiv.innerHTML = '<div class="error">❌ Extraction failed. Please try again.</div>';
+              return;
+            }
+            
+            attempts++;
+            if (attempts < maxAttempts) {
+              setTimeout(poll, 2000); // Poll every 2 seconds
+            } else {
+              statusDiv.innerHTML = '<div class="error">⏰ Extraction is taking longer than expected. Please check the data page.</div>';
+            }
+          } catch (error) {
+            console.error('Error polling job status:', error);
+            statusDiv.innerHTML = '<div class="error">Error checking job status</div>';
+          }
+        };
+        
+        poll();
+      }
+
+      // Initialize app
+      document.addEventListener('DOMContentLoaded', function() {
+        loadStats();
+      });
+    </script>
+  </body>
+</html>

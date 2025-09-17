@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Connection</title>
+    <script src="https://unpkg.com/axios@1.6.0/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test Backend Connection</h1>
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testScraping()">Test Scraping Endpoint</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        async function testHealth() {
+            try {
+                const response = await axios.get(`${API_BASE}/health`);
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: green;">Health check successful: ' + JSON.stringify(response.data) + '</div>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: red;">Health check failed: ' + error.message + '</div>';
+            }
+        }
+
+        async function testScraping() {
+            try {
+                const response = await axios.post(`${API_BASE}/scraping/start`, {
+                    category: 'Restaurants',
+                    location: 'New York',
+                    filters: {}
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: green;">Scraping test successful: ' + JSON.stringify(response.data) + '</div>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: red;">Scraping test failed: ' + error.message + 
+                    '<br>Error details: ' + JSON.stringify(error.response?.data) + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>
