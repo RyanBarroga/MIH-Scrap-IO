@@ -7,13 +7,14 @@
 3. **Vercel Config**: Added proper environment variables and function configuration
 4. **Puppeteer**: Added Vercel-specific browser configurations and fallback to mock data
 5. **Error Handling**: Improved error handling and timeouts for serverless functions
+6. **Simplified Server**: Created a Vercel-optimized server without problematic dependencies
 
 ## How to Deploy
 
 1. **Commit your changes:**
    ```bash
    git add .
-   git commit -m "Fix Vercel deployment - update API endpoints and database config"
+   git commit -m "Fix Vercel deployment - replace main server with Vercel-compatible version"
    git push
    ```
 
